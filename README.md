@@ -15,3 +15,4 @@ http://ilkka.io/blog/generator-webpack-es6-cssnext/
 
 GitLab:
 https://www.linux.com/learn/tutorials/824358-how-to-run-your-own-git-server
+https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/install/installation.md
