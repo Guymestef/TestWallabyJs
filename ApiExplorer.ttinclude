@@ -1,0 +1,189 @@
+﻿<#@ assembly name="System.Core"#>
+<#@ assembly name="System.Net.Http"#>
+<#@ assembly name="$(TargetDir)System.Web.Http.dll"#>
+<#@ assembly name="$(TargetDir)Newtonsoft.Json.dll"#>
+<#@ assembly name="$(TargetDir)ICrm.Client.Services.dll" #>
+<#@ import namespace="System.Linq"#>
+<#@ import namespace="System.Text.RegularExpressions"#>
+<#@ import namespace="System.Web.Http"#>
+<#@ import namespace="System.Web.Http.Description"#>
+<#@ import namespace="System.Collections.Generic"#>
+<#@ import namespace="System.Net.Http"#>
+<#+	
+	public IEnumerable<Endpoint> GetEndpoints()
+	{
+		RedirectAssembly("Newtonsoft.Json", new Version("7.0.0.0"), "30AD4FE6B2A6AEED");
+		var httpConf = new System.Web.Http.HttpConfiguration();
+		ICrm.Client.Services.WebApiConfig.RegisterRoutes(httpConf);
+		httpConf.EnsureInitialized();
+		var apiExplorer = new ApiExplorer(httpConf);
+
+		return apiExplorer.ApiDescriptions
+			.Select(m => new Endpoint{
+				ControllerName = m.ActionDescriptor.ControllerDescriptor.ControllerName,
+				ActionName = m.ActionDescriptor.ActionName,
+				ResponseDescription = m.ResponseDescription,
+				ParameterDescriptions = m.ParameterDescriptions.ToList(),
+				RelativePath = m.RelativePath,
+				Method = m.HttpMethod.Method
+			})
+			.ToList();
+	}
+
+	public bool IsSytemType(System.Type type)
+    {
+		var systemTypes = new Dictionary<Type, string>() {
+			{ typeof(string), "string"},
+			{ typeof(bool), "boolean"},
+			{ typeof(int), "number"},
+			{ typeof(double), "number"},
+			{ typeof(float), "number"},
+			{ typeof(DateTime), "Date"}
+		};
+		return systemTypes.ContainsKey(type);
+    }
+
+	public class Endpoint
+	{
+        public string ControllerName { get; set; }
+        public string ActionName { get; set; }
+        public string RelativePath { get; set; }
+        public string Method { get; set; }
+        public ResponseDescription ResponseDescription { get; set; }
+        public List<ApiParameterDescription> ParameterDescriptions { get; set; }
+
+		public IEnumerable<System.Type> GetUsedTypes()
+        {
+			var typeList = new List<System.Type>
+			{
+				GetElementaryType(ResponseDescription.ResponseType ?? ResponseDescription.DeclaredType)
+			};
+			typeList.AddRange(ParameterDescriptions.Select(m => GetElementaryType(m.ParameterDescriptor.ParameterType)));
+
+			return typeList.Where(m => m != null).ToList();
+        }
+
+		public string GetInterface()
+        {						
+			var responseType = (ResponseDescription.ResponseType ?? ResponseDescription.DeclaredType);	
+			var response = GetTSTypeName(responseType);
+
+			var parameters = string.Join(", ", ParameterDescriptions.Select(FormatParameter));
+
+			return string.Format("\t\t{0}?({1}): {2};", LowerCaseFirst(ActionName), parameters, response);
+        }
+
+		public string GetUrl()
+		{
+			var url = RelativePath
+				.Replace("{controller}", ControllerName)
+				.Replace("{action}", ActionName);
+			return Regex.Replace(url, @"\{([^\/:&?]*)[^\/&?]*\}", ":$1").ToLowerInvariant();
+		}
+	}
+
+	private static System.Type GetElementaryType(System.Type type)
+    {
+		var elementaryType = type;
+		if(type != null && type.FullName == "System.Net.Http.HttpResponseMessage")
+        {
+			elementaryType = null;
+        }
+
+		if(IsEnumerableType(elementaryType))
+        {
+			elementaryType = elementaryType.GenericTypeArguments.First();
+        }
+
+		if(IsNullableType(elementaryType))
+        {
+			elementaryType = elementaryType.GenericTypeArguments.First();
+        }
+			
+		return elementaryType;
+    }
+	
+	private static bool IsEnumerableType(System.Type type)
+    {
+		return type != null
+			&& type.GetInterfaces().Contains(typeof(System.Collections.IEnumerable))
+			&& type.IsGenericType;
+    }
+
+	private static bool IsNullableType(System.Type type)
+    {
+		return type != null
+			&& type.IsGenericType
+			&& type.GetGenericTypeDefinition() == typeof(Nullable<>);
+    }
+
+	private static string GetTSTypeName(Type type)
+    {
+		var elementaryType = GetElementaryType(type);
+		var isEnumerableType = IsEnumerableType(type);
+			
+		var tsType = "void";
+		
+		var systemTypes = new Dictionary<Type, string>() {
+			{ typeof(string), "string"},
+			{ typeof(bool), "boolean"},
+			{ typeof(int), "number"},
+			{ typeof(double), "number"},
+			{ typeof(float), "number"},
+			{ typeof(DateTime), "Date"}
+		};
+
+		if(elementaryType != null)
+        {
+			if(systemTypes.ContainsKey(elementaryType))
+            {
+				tsType = systemTypes[elementaryType] + (isEnumerableType ? "[]" : string.Empty);
+            }
+			else if(elementaryType.IsEnum)
+			{
+				tsType = elementaryType.Namespace.Replace("ICrm.Client.Services.Models", "IC") + "." + elementaryType.Name + (isEnumerableType ? "[]" : string.Empty);
+            }
+			else
+			{
+				tsType = elementaryType.Namespace.Replace("ICrm.Client.Services.Models", "IC") + ".I" + elementaryType.Name + (isEnumerableType ? "[]" : string.Empty);
+            }
+        }
+
+		return tsType;
+    }
+
+	private static string FormatParameter(ApiParameterDescription parameter)
+    {
+		var parameterType = GetTSTypeName(parameter.ParameterDescriptor.ParameterType);
+
+		return parameter.ParameterDescriptor.ParameterName
+			+ (parameter.ParameterDescriptor.IsOptional ? "?" : string.Empty)
+			+ ": " + parameterType;
+    }
+		
+	public static string LowerCaseFirst(string value)
+	{
+		return char.ToLower(value[0]) + value.Substring(1);
+	}
+
+	private static void RedirectAssembly(string shortName, Version targetVersion, string publicKeyToken)
+	{
+		ResolveEventHandler handler = null;
+
+		handler = (sender, args) => {
+			// Use latest strong name & version when trying to load SDK assemblies
+			var requestedAssembly = new System.Reflection.AssemblyName(args.Name);
+			if (requestedAssembly.Name != shortName)
+				return null;
+
+			requestedAssembly.Version = targetVersion;
+			requestedAssembly.SetPublicKeyToken(new System.Reflection.AssemblyName("x, PublicKeyToken=" + publicKeyToken).GetPublicKeyToken());
+			requestedAssembly.CultureInfo = System.Globalization.CultureInfo.InvariantCulture;
+
+			AppDomain.CurrentDomain.AssemblyResolve -= handler;
+
+			return System.Reflection.Assembly.Load(requestedAssembly);
+		};
+		AppDomain.CurrentDomain.AssemblyResolve += handler;
+	}
+#>

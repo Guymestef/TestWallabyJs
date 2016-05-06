@@ -1,0 +1,44 @@
+﻿<#@ template debug="false" hostspecific="True" language="C#" #>
+<#@ include file="ApiExplorer.ttinclude" #>
+<#@ assembly name="$(TargetDir)TypeLite.dll" #>
+<#@ assembly name="$(TargetDir)TypeLite.Net4.dll" #>
+<#@ import namespace="TypeLite" #> 
+<#@ import namespace="TypeLite.Net4" #> 
+<#@output extension=".d.ts"#>
+<#
+	var usedTypes = GetEndpoints().SelectMany(m => m.GetUsedTypes()).Distinct().ToList();
+
+	var ts = TypeScript.Definitions()
+		.WithReference("Enums.ts")
+		.WithModuleNameFormatter((module) => module.Name.Replace("ICrm.Client.Services.Models", "IC"))
+		.WithMemberFormatter((identifier) => Char.ToLower(identifier.Name[0]) + identifier.Name.Substring(1))
+		.WithMemberTypeFormatter((tsProperty, memberTypeName) => {
+			var asCollection = tsProperty.PropertyType as TypeLite.TsModels.TsCollection;
+			var isCollection = asCollection != null;
+			
+			if(tsProperty.PropertyType.Type.IsGenericParameter)
+			{
+				memberTypeName = "any";
+			}
+
+			if(memberTypeName.Contains("$"))
+			{
+				memberTypeName = memberTypeName.Split('$')[1];
+			}
+
+			return memberTypeName + (isCollection ? string.Concat(Enumerable.Repeat("[]", asCollection.Dimension)) : "");
+		})
+		.WithTypeFormatter((type, f) => "I" + ((TypeLite.TsModels.TsClass)type).Name);
+
+	ts.WithConvertor<Dictionary<string, Dictionary<string, IEnumerable<ICrm.Client.Services.Models.Common.OptionSet>>>>(t => {
+		// Embed the real type in $
+		// "System.Collections.Generic.${ [key: string]: any }$[]"
+		return "${ [key: string]: { [key: string]: IC.Common.IOptionSet[] } }$";
+	});
+	
+	foreach(var type in usedTypes.Where(m => (m.IsClass || m.IsValueType || m.IsEnum) && !IsSytemType(m)))
+    {
+		ts.For(type);
+    }
+#>
+<#= ts.Generate(TsGeneratorOutput.Properties) #>

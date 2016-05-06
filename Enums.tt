@@ -1,0 +1,24 @@
+﻿<#@ template debug="false" hostspecific="True" language="C#" #>
+<#@ include file="ApiExplorer.ttinclude" #>
+<#@ assembly name="$(TargetDir)TypeLite.dll" #>
+<#@ assembly name="$(TargetDir)TypeLite.Net4.dll" #>
+<#@ import namespace="TypeLite" #> 
+<#@ import namespace="TypeLite.Net4" #> 
+<#@output extension=".ts"#>
+<#
+	var usedTypes = GetEndpoints().SelectMany(m => m.GetUsedTypes()).Distinct().ToList();
+
+	var ts = TypeScript.Definitions()
+		.WithModuleNameFormatter((module) => module.Name.Replace("ICrm.Client.Services.Models", "IC"))
+		.WithTypeFormatter((type, f) => "I" + ((TypeLite.TsModels.TsClass)type).Name)
+		.WithMemberFormatter((identifier) => 
+			Char.ToLower(identifier.Name[0]) + identifier.Name.Substring(1)
+		);
+
+	foreach(var type in usedTypes.Where(m => (m.IsClass || m.IsValueType || m.IsEnum) && !IsSytemType(m)))
+    {
+		ts.For(type);
+    }
+       
+#>
+<#= ts.Generate(TsGeneratorOutput.Enums) #>

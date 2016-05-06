@@ -1,0 +1,30 @@
+﻿<#@ template debug="false" hostspecific="True" language="C#" #>
+<#@ include file="ApiExplorer.ttinclude" #>
+<#@output extension=".ts"#>
+<#	
+	var apiGroupedByController = GetEndpoints()
+		.GroupBy(m => m.ControllerName)
+		.OrderBy(m => m.Key)
+		.ToList();
+
+	foreach(var api in apiGroupedByController)
+    {
+		var controllerName = LowerCaseFirst(api.Key);
+
+		var endpoints = api.OrderBy(m => m.ActionName).ToList();
+
+		var duplicateIds = endpoints.GroupBy(m => m.ActionName).Where(m => m.Count() > 1);
+		foreach(var duplicateId in duplicateIds)
+        {
+			for(var i = 1; i < duplicateId.Count(); i++)
+            {
+				duplicateId.ElementAt(i).ActionName += "_" + i;
+            }
+        }
+#>
+export const <#= controllerName #>Requestinfo = {
+<#= string.Join(",\n", endpoints.Select(m => string.Format("\t{0}: {{\n\t\tname: '{1}',\n\t\turl: '{2}',\n\t\tmethod: '{3}'\n\t}}", LowerCaseFirst(m.ActionName), LowerCaseFirst(m.ActionName), m.GetUrl(), m.Method)))#>
+};
+<#	
+    }
+#>

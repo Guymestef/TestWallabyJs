@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- To import
+  <Import Project="$(SolutionDir)\TransformTypeLite.targets" Condition="'$(SolutionDir)' != '' And Exists('$(SolutionDir)\TransformTypeLite.targets')" />
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Define a project property, TargetDir: -->
+  <PropertyGroup>
+    <TransformAfterBuild>true</TransformAfterBuild>
+    <TargetDir>$(SolutionDir)\ICrm.Client.Services\bin\</TargetDir>
+    <IncludeFolders>$(IncludeFolders);$(TargetDir)</IncludeFolders>
+    <OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
+    <TransformOutOfDateOnly>false</TransformOutOfDateOnly>
+  </PropertyGroup>
+  <!-- Tell the MSBuild T4 task to make the property available: -->
+  <ItemGroup>
+    <T4ReferencePath Include="$(SolutionDir)\ICrm.Client.Services\bin\">
+      <InProject>False</InProject>
+    </T4ReferencePath>
+    <T4ParameterValues Include="TargetDir">
+      <Value>$(TargetDir)</Value>
+      <Visible>false</Visible>
+    </T4ParameterValues>
+  </ItemGroup>
+
+  <Import Project="$(SolutionDir)\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('$(SolutionDir)\TextTemplating\Microsoft.TextTemplating.targets')" />
+  <Target Name="GetTransformAfterBuildFiles">
+    <CreateProperty Value="TypeLite\Models.tt;TypeLite\Enums.tt;TypeLite\RequestInfo.tt;TypeLite\Api.tt">
+      <Output TaskParameter="Value" PropertyName="TransformFile" />
+    </CreateProperty>
+  </Target>
+  <Target Name="TransformAfterBuild" Condition="$(TransformAfterBuild)==true">
+    <CallTarget Targets="GetTransformAfterBuildFiles" />
+    <CallTarget Targets="Transform" />
+  </Target>
+</Project>

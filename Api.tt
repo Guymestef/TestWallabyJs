@@ -1,0 +1,37 @@
+﻿<#@ template debug="false" hostspecific="True" language="C#" #>
+<#@ include file="ApiExplorer.ttinclude" #>
+<#@output extension=".d.ts"#>
+<#	
+	var apiGroupedByController = GetEndpoints()
+		.GroupBy(m => m.ControllerName)
+		.OrderBy(m => m.Key)
+		.ToList();
+	
+#>
+/// <reference path="Models.d.ts" />
+/// <reference path="ClientApi.d.ts" />
+<#	
+	foreach(var api in apiGroupedByController)
+    {
+		var controllerName = api.Key;
+
+		var endpoints = api.OrderBy(m => m.ActionName).ToList();
+
+		var duplicateNames = endpoints.GroupBy(m => m.ActionName).Where(m => m.Count() > 1);
+		foreach(var duplicateName in duplicateNames)
+        {
+			for(var i = 1; i < duplicateName.Count(); i++)
+            {
+				duplicateName.ElementAt(i).ActionName += "_" + i;
+            }
+        }
+#>
+
+declare module IC.Api.<#= controllerName #> {
+    export interface I<#= controllerName #>Api {
+<#= string.Join("\n", endpoints.Select(m => m.GetInterface()))#>
+    }
+}
+<#	
+    }
+#>
