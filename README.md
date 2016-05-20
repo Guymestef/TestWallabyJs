@@ -18,4 +18,7 @@ https://www.linux.com/learn/tutorials/824358-how-to-run-your-own-git-server
 https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/install/installation.md
 
 
-test
+Machine learning and Genetic algorithm:
+http://burakkanber.com/blog/machine-learning-in-other-languages-introduction/
+https://www.burakkanber.com/blog/machine-learning-genetic-algorithms-part-1-javascript/
+http://burakkanber.com/blog/machine-learning-genetic-algorithms-in-javascript-part-2/
