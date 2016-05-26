@@ -23,5 +23,5 @@ http://burakkanber.com/blog/machine-learning-in-other-languages-introduction/
 https://www.burakkanber.com/blog/machine-learning-genetic-algorithms-part-1-javascript/
 http://burakkanber.com/blog/machine-learning-genetic-algorithms-in-javascript-part-2/
 
-http://www.codeproject.com/Articles/873559/Implementing-Genetic-Algorithms-in-Csharp
+http://www.codeproject.com/Articles/873559/Implementing-Genetic-Algorithms-in-Csharp/
 http://johnnewcombe.net/
