@@ -25,3 +25,7 @@ http://burakkanber.com/blog/machine-learning-genetic-algorithms-in-javascript-pa
 
 http://www.codeproject.com/Articles/873559/Implementing-Genetic-Algorithms-in-Csharp/
 http://johnnewcombe.net/
+
+https://github.com/andrewkirillov/AForge.NET
+
+https://github.com/giacomelli/GeneticSharp
