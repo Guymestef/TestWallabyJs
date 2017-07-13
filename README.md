@@ -29,3 +29,22 @@ http://johnnewcombe.net/
 https://github.com/andrewkirillov/AForge.NET
 
 https://github.com/giacomelli/GeneticSharp
+
+
+        resolve: {
+            extensions: ['.ts', '.js'],
+            modules: [
+                'src',
+                'node_modules'
+            ]
+        },
+
+        entry: {
+            main: path.resolve(config.sources.root, 'main.ts')
+        },
+        
+            new CommonsChunkPlugin({
+                name: 'vendor',
+                chunks: ['main'],
+                minChunks: module => (module.resource || []).includes('node_modules')
+            }),
